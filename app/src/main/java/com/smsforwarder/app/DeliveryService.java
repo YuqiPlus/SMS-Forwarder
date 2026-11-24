@@ -30,26 +30,31 @@ public final class DeliveryService extends JobService {
             return false;
         }
 
-        ForwardingStore.Settings settings = store.settings();
-        if (!store.canSend(delivery, settings)) {
-            store.delete(jobId);
-            store.report(delivery.test(), "配置已关闭或短信权限已撤销");
+        ForwardingStore.Settings settings = store.settingsFor(delivery);
+        if (settings == null) {
+            store.deliveryResult(jobId, delivery.eventId(), delivery.test(), ForwardingHistory.State.CANCELLED,
+                    "转发规则已更改、已关闭或短信权限已撤销");
             return false;
         }
         if (delivery.attempts() >= MAX_ATTEMPTS
                 || System.currentTimeMillis() - delivery.queuedAt() >= MAX_AGE_MS) {
-            store.delete(jobId);
-            store.report(delivery.test(), "超过发送时限或重试次数");
+            store.deliveryResult(jobId, delivery.eventId(), delivery.test(), ForwardingHistory.State.FAILED,
+                    "超过发送时限或重试次数");
             return false;
         }
 
         int attempt = delivery.attempts() + 1;
-        store.setAttempts(jobId, attempt);
         int queueVersion = store.queueVersion();
         Future<?> task = network.submit(() -> {
-            boolean cancelled = queueVersion != store.queueVersion() || Thread.currentThread().isInterrupted();
-            Webhook.Result result = cancelled ? null : Webhook.send(settings, delivery);
-            main.post(() -> complete(parameters, delivery, attempt, result));
+            // A job stopped while waiting for a worker must not spend an attempt.
+            Webhook.Result result = null;
+            if (queueVersion == store.queueVersion() && !Thread.currentThread().isInterrupted()
+                    && store.recordAttempt(jobId, attempt)
+                    && queueVersion == store.queueVersion() && !Thread.currentThread().isInterrupted()) {
+                result = Webhook.send(settings, delivery);
+            }
+            Webhook.Result completed = result;
+            main.post(() -> complete(parameters, delivery, attempt, completed));
         });
         active.put(jobId, new RunningJob(parameters, task));
         return true;
@@ -66,24 +71,25 @@ public final class DeliveryService extends JobService {
 
         ForwardingStore store = ForwardingStore.get(this);
         ForwardingStore.Delivery current = store.find(jobId);
-        boolean retry = current != null && result != null && result.retry() && attempt < MAX_ATTEMPTS;
+        boolean retry = current != null && (result == null || (result.retry() && attempt < MAX_ATTEMPTS));
         if (current != null && result != null) {
-            if (!retry) {
-                store.delete(jobId);
-            }
             String suffix = retry ? "，将自动重试" : result.retry() ? "，已停止重试" : "";
-            store.report(delivery.test(), result.message() + suffix);
+            ForwardingHistory.State state = result.success() ? ForwardingHistory.State.SENT
+                    : retry ? ForwardingHistory.State.RETRYING : ForwardingHistory.State.FAILED;
+            store.deliveryResult(jobId, delivery.eventId(), delivery.test(), state, result.message() + suffix);
         }
         jobFinished(parameters, retry);
     }
 
     @Override
     public boolean onStopJob(JobParameters parameters) {
-        RunningJob running = active.remove(parameters.getJobId());
-        if (running != null) {
+        int jobId = parameters.getJobId();
+        RunningJob running = active.get(jobId);
+        if (running != null && running.parameters() == parameters) {
+            active.remove(jobId);
             running.task().cancel(true);
         }
-        return ForwardingStore.get(this).find(parameters.getJobId()) != null;
+        return ForwardingStore.get(this).find(jobId) != null;
     }
 
     @Override

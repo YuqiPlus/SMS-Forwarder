@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace 'com.smsforwarder.app'
+    namespace = 'com.smsforwarder.app'
     compileSdk 37
 
     defaultConfig {
         applicationId 'com.smsforwarder.app'
         minSdk 26
-        targetSdk 36
-        versionCode 1
-        versionName '0.1.0'
+        targetSdk 37
+        versionCode 4
+        versionName '0.4.0'
     }
 
     compileOptions {

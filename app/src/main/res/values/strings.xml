@@ -1,14 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">短信转发</string>
-    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+    <string name="platform_automatic_hint">粘贴地址后会自动选择合适的平台格式</string>
+    <string name="platform_detected">按地址发送为：%1$s</string>
+    <string name="webhook_optional_credential">%1$s（可选）</string>
+    <string name="platform_picker_label">接收平台：%1$s</string>
+    <string name="remove_destination">删除「%1$s」？</string>
+    <string name="pending_count">待处理 %1$d 条</string>
+    <string name="sim_number">SIM %1$d</string>
+    <string name="sim_mode">按 SIM 卡设置</string>
+    <string name="sim_route_choice">SIM %1$d：%2$s</string>
+    <string name="sim_choice_title">为 SIM %1$d 选择接收端</string>
+    <string name="named_destination">%1$s（%2$s）</string>
+    <string name="history_metadata">%1$s · %2$s</string>
+    <string name="history_privacy">仅在本机保留最近 %1$d 条。发件人已脱敏，历史不保存短信正文。</string>
+    <style name="AppTheme" parent="BaseAppTheme" />
+    <style name="BaseAppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#186A55</item>
+        <item name="android:colorAccent">#18614E</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">#F4F7F5</item>
+        <item name="android:windowBackground">#F4F7F6</item>
         <item name="android:windowSoftInputMode">adjustResize</item>
-        <item name="android:statusBarColor">#F4F7F5</item>
-        <item name="android:navigationBarColor">#F4F7F5</item>
+        <item name="android:statusBarColor">#F4F7F6</item>
+        <item name="android:navigationBarColor">#F4F7F6</item>
     </style>
 </resources>

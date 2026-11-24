@@ -34,6 +34,7 @@ public final class IncomingSmsReceiver extends BroadcastReceiver {
             return;
         }
 
-        store.enqueue(false, sender == null ? "" : sender, body.toString(), parts[0].getTimestampMillis());
+        store.enqueueSms(SmsSim.slot(intent), sender == null ? "" : sender, body.toString(),
+                parts[0].getTimestampMillis());
     }
 }
