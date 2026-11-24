@@ -1,13 +1,15 @@
 # 短信转发
 
-这是一个 Android 应用。开启转发并授予短信权限后，应用会把系统交给它的新短信通过 HTTPS POST 发送到你配置的 Webhook。支持 Android 8.0（API 26）及以上。
+把手机收到的新短信转发到飞书、企业微信、钉钉、Slack、Discord 或你自己的 Webhook。支持 Android 8.0 及以上。
+
+**[下载正式版](https://github.com/YuqiPlus/SMS-Forwarder/releases/latest)**
 
 ## 手机上怎么用
 
-1. 在手机上安装 [GitHub Releases](https://github.com/YuqiPlus/SMS-Forwarder/releases) 提供的 APK，打开「短信转发」。从浏览器或文件管理器安装时，如果系统提示，给打开 APK 的应用临时开启「允许安装未知应用」。安装后可撤销。
+1. 在下载页的 **Assets（附件）** 里选择以 `.apk` 结尾的文件，在手机上安装并打开「短信转发」。如果系统提示，临时允许浏览器或文件管理器安装此应用，安装后可撤销。
 2. 点首页右上角的设置图标，再点「＋」。选择接收平台，填写昵称和完整的 HTTPS Webhook 地址。需要鉴权时，填入界面提示的密钥，再点「保存接收端」。
 3. 返回首页，点「发送测试消息」。这会向当前接收端发送预设文字，转发关闭时也能测试。在「最近转发记录」查看结果。
-4. 点「开启转发」并授权，从另一部手机发一条普通短信到测试手机。在目标群或频道查看消息，或在通用接收端检查 `event` 为 `sms.received` 的请求。
+4. 点「开启转发」并允许短信权限。用另一部手机发一条普通短信，再到目标群、频道或自建接收端查看结果。
 
 首次安装只需在手机上授予短信权限。锁屏后转发不稳定时，先看[各品牌后台设置](#各品牌后台设置)。
 
@@ -22,9 +24,9 @@
 | 查看网络状态 `ACCESS_NETWORK_STATE` | 系统自动授予 | 让 Android 在有网络时调度待发任务 |
 | 开机广播 `RECEIVE_BOOT_COMPLETED` | 系统自动授予 | 允许 Android 保留已安排的发送任务，供设备重启后继续调度 |
 
-应用无需读取历史短信、发送运营商短信、读取手机号或通讯录，也无需通知权限、无障碍、悬浮窗或设为默认短信应用。SIM 卡规则使用 Android 随新短信提供的卡槽或订阅信息。测试按钮只发送预设文字，验证 Webhook 时无需开启短信转发或授予短信权限。
+应用无需读取历史短信、发送运营商短信、读取手机号或通讯录，也无需通知权限、无障碍、悬浮窗或设为默认短信应用。双卡转发无需额外授权。测试按钮只发送预设文字，验证 Webhook 时无需开启短信转发或授予短信权限。
 
-如果点「开启转发」时拒绝了授权，可以长按应用图标 → **应用信息 → 权限 → 短信 → 允许**。入口也可从 **设置 → 应用 → 短信转发 → 权限** 找到。Android 还会根据安装器和设备管理策略限制这项权限。如果系统没有提供开关，或开关无法修改，应用不能代为授权。 [Android 短信权限说明](https://developer.android.com/reference/android/Manifest.permission#RECEIVE_SMS) · [任务调度说明](https://developer.android.com/reference/android/app/job/JobInfo.Builder#setPersisted(boolean))
+如果点「开启转发」时拒绝了授权，可以长按应用图标 → **应用信息 → 权限 → 短信 → 允许**。入口也可从 **设置 → 应用 → 短信转发 → 权限** 找到。Android 还会根据安装器和设备管理策略限制这项权限。如果系统没有提供开关，或开关无法修改，应用不能代为授权。 [Android 短信权限说明](https://developer.android.com/reference/android/Manifest.permission#RECEIVE_SMS)
 
 ### 各品牌后台设置
 
@@ -60,7 +62,7 @@
 | 钉钉 | `https://oapi.dingtalk.com/robot/send?access_token=…` | 启用加签时单独填写密钥，地址使用机器人提供的原始地址 |
 | Slack | `https://hooks.slack.com/services/…` | 无，使用 Slack 应用的 Incoming Webhook |
 | Discord | `https://discord.com/api/webhooks/…` | 无，使用频道生成的 Webhook |
-| 通用 Webhook | 接收 JSON POST 的自建服务或自动化工作流 | 可选 Bearer Token |
+| 通用 Webhook | 接收 JSON 的自建服务或自动化工作流，参见[请求格式](DEVELOPMENT.md#通用-webhook-请求) | 可选 Bearer Token |
 
 可以保存多个接收端。默认模式下，所有短信都发往标为「当前」的接收端。点开卡片可以编辑或切换当前接收端。删除接收端会移除指向它的 SIM 卡规则，避免将短信自动发到其他地方。
 
@@ -76,36 +78,4 @@
 
 「转发历史」显示时间、SIM 卡、接收端、脱敏发件人和处理结果，保留最近 200 条。不保存短信正文或 Webhook 密钥。系统没有交给应用的短信不会出现在历史中。变更转发规则或正在使用的目标时，待发消息会标为已取消，避免发到新接收端。
 
-## 通用 Webhook 请求
-
-`Content-Type: application/json; charset=utf-8`。填了 Token 时，请求会带上 `Authorization: Bearer <token>`。
-
-```json
-{
-  "id": "dc1f1892-0a89-42b7-92b8-b7e465bbf20b",
-  "event": "sms.received",
-  "sender": "+8613800000000",
-  "body": "这是一条普通短信",
-  "receivedAt": 1795435200000
-}
-```
-
-`receivedAt` 是 Unix 毫秒时间戳，真实短信取自短信本身，测试消息取手机当前时间。测试事件名是 `sms.test`。如果接收端记录消息或触发其他操作，可通过 `id` 或同值的 `Idempotency-Key` 请求头去重。同一条消息重试时会沿用这个 ID。
-
-网络异常以及 HTTP 408、425、429、5xx 会触发自动重试。每条消息最多尝试 6 次，任务再次执行时会丢弃排队超过 24 小时的消息。待处理上限为 40 条。关闭转发或更改已保存的接收端配置会清空待发队列，已发出的请求可能仍会被接收。
-
-## 打开源码
-
-用 Android Studio 打开 `SMS-Forwarder` 目录，安装 Android SDK 37，然后同步 Gradle。工程使用 Android Gradle Plugin 9.3.0、Gradle 9.9.2 和 JDK 17 或更高版本。命令行可运行 Windows 的 `gradlew.bat assembleDebug`，或者 macOS / Linux 的 `./gradlew assembleDebug`。
-
-生成的 Debug APK 位于 `app/build/outputs/apk/debug/app-debug.apk`。可用上面的步骤在设备和接收端做端到端验证。
-
-正式 APK 使用发布签名。手机若已装过采用调试签名的版本，Android 通常不允许直接覆盖。卸载旧版会清除配置和本机历史，请先确认这些数据是否还需要。 [Android 应用签名与升级说明](https://developer.android.com/studio/publish/app-signing#considerations)
-
-- [Android 短信广播文档](https://developer.android.com/reference/android/provider/Telephony.Sms.Intents#SMS_RECEIVED_ACTION)
-- [Android 短信权限文档](https://developer.android.com/reference/android/Manifest.permission#RECEIVE_SMS)
-- [飞书自定义机器人使用指南](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN)
-- [Google Play 短信权限政策](https://support.google.com/googleplay/android-developer/answer/10208820)
-
-接收端图标用于标识各平台，商标归各自权利人所有。Slack 和 Discord 图标来自 [SVG Logos](https://github.com/gilbarbara/logos)，钉钉图标来自 [Ant Design Icons](https://github.com/ant-design/ant-design-icons)，飞书 / Lark 和企业微信图标来自各平台官网。
-
+[开发与集成文档](DEVELOPMENT.md)
