@@ -62,7 +62,7 @@
 | 钉钉 | `https://oapi.dingtalk.com/robot/send?access_token=…` | 启用加签时单独填写密钥，地址使用机器人提供的原始地址 |
 | Slack | `https://hooks.slack.com/services/…` | 无，使用 Slack 应用的 Incoming Webhook |
 | Discord | `https://discord.com/api/webhooks/…` | 无，使用频道生成的 Webhook |
-| 通用 Webhook | 接收 JSON 的自建服务或自动化工作流，参见[请求格式](DEVELOPMENT.md#通用-webhook-请求) | 可选 Bearer Token |
+| 通用 Webhook | 接收 JSON 的自建服务或自动化工作流 | 可选 Bearer Token |
 
 可以保存多个接收端。默认模式下，所有短信都发往标为「当前」的接收端。点开卡片可以编辑或切换当前接收端。删除接收端会移除指向它的 SIM 卡规则，避免将短信自动发到其他地方。
 
@@ -72,10 +72,27 @@
 
 应用会检查平台的回执。企业微信、Slack 或 Discord 的消息遇到长度限制时会标注截断。已知的限流错误会自动重试。
 
+<details>
+<summary>自建 Webhook 的请求示例</summary>
+
+应用向填写的地址发送 HTTPS POST，使用 `application/json; charset=utf-8`。如果填写了 Token，请求会带上 `Authorization: Bearer <token>`。
+
+```json
+{
+  "id": "dc1f1892-0a89-42b7-92b8-b7e465bbf20b",
+  "event": "sms.received",
+  "sender": "10086",
+  "body": "这是一条普通短信",
+  "receivedAt": 1795435200000
+}
+```
+
+`receivedAt` 是 Unix 毫秒时间戳。测试消息的事件名是 `sms.test`。同一条消息重试时，`id` 和 `Idempotency-Key` 请求头保持相同，可以用于去重。
+
+</details>
+
 ## SIM 卡规则和转发历史
 
 在首页打开「SIM 卡规则」，开启「按 SIM 卡设置」，再分别给 SIM 1、SIM 2 选择接收端。只转一张卡时，把另一张设为「不转发」。规则按系统卡槽编号设置，换卡后请重新核对。按卡转发时，无法可靠识别来源的短信会跳过。关闭按卡设置后，恢复全部短信发往当前接收端。
 
 「转发历史」显示时间、SIM 卡、接收端、脱敏发件人和处理结果，保留最近 200 条。不保存短信正文或 Webhook 密钥。系统没有交给应用的短信不会出现在历史中。变更转发规则或正在使用的目标时，待发消息会标为已取消，避免发到新接收端。
-
-[开发与集成文档](DEVELOPMENT.md)
